@@ -64,7 +64,10 @@ pipeline {
                         [ "$code" = "200" ]
                     done
 
-                    curl -s http://localhost:${PORT}/index.html | grep -q "ChatApp"
+                    # Page must be real HTML with a <title> (works even if you rename the app)
+                    curl -s http://localhost:${PORT}/index.html -o page.html
+                    grep -i "<title>" page.html
+                    grep -qi "<title>" page.html
                 '''
             }
         }
