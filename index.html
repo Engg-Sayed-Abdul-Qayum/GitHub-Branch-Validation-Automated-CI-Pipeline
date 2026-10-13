@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WhatsApp — WhatsApp Web Clone</title>
+
+  <!-- Tailwind (CDN) then our config -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="tailwind.config.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="h-screen overflow-hidden bg-wa-lightbg dark:bg-wa-darkbg text-slate-800 dark:text-slate-100 font-sans">
+
+  <div id="app" class="mx-auto flex h-full max-w-[1600px] bg-white dark:bg-wa-panel shadow-2xl">
+
+    <!-- ============ SIDEBAR ============ -->
+    <aside id="sidebar" class="flex w-full md:w-[380px] lg:w-[420px] shrink-0 flex-col border-r border-slate-200 dark:border-wa-border">
+
+      <!-- Sidebar header -->
+      <header class="flex h-[60px] items-center justify-between bg-slate-100 dark:bg-wa-header px-4">
+        <div class="flex items-center gap-3">
+          <div class="avatar h-10 w-10 text-sm" style="background:#00a884">SAQ</div>
+          <span class="font-semibold">Chats</span>
+        </div>
+        <div class="flex items-center gap-1">
+          <button id="themeBtn" class="icon-btn" title="Toggle theme">
+            <svg id="themeIcon" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+          </button>
+          <button id="newChatBtn" class="icon-btn" title="New chat">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Search -->
+      <div class="px-3 py-2 bg-white dark:bg-wa-panel">
+        <div class="flex items-center gap-3 rounded-lg bg-slate-100 dark:bg-wa-header px-3 py-2">
+          <svg class="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 10a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <input id="searchInput" type="text" placeholder="Search or start new chat"
+                 class="w-full bg-transparent text-sm outline-none placeholder:text-slate-500" />
+        </div>
+      </div>
+
+      <!-- Filter tabs -->
+      <div class="flex gap-2 px-3 pb-2">
+        <button data-filter="all" class="filter-chip active">All</button>
+        <button data-filter="unread" class="filter-chip">Unread</button>
+      </div>
+
+      <!-- Chat list -->
+      <ul id="chatList" class="flex-1 overflow-y-auto scroll-thin"></ul>
+    </aside>
+
+    <!-- ============ CHAT PANE ============ -->
+    <main id="chatPane" class="max-md:hidden relative flex min-w-0 flex-1 flex-col">
+
+      <!-- Empty state -->
+      <section id="emptyState" class="flex h-full flex-col items-center justify-center gap-4 bg-slate-50 dark:bg-wa-header text-center px-6">
+        <div class="flex h-24 w-24 items-center justify-center rounded-full bg-wa-green/10">
+          <svg class="h-12 w-12 text-wa-green" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm0 18a8 8 0 01-4.1-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8 8 0 1112 20z"/></svg>
+        </div>
+        <h1 class="text-3xl font-light">WhatsApp Web</h1>
+        <p class="max-w-sm text-sm text-slate-500 dark:text-slate-400">Select a chat from the left to start messaging. Messages are saved in your browser.</p>
+      </section>
+
+      <!-- Active chat -->
+      <section id="chatView" class="hidden h-full flex-col">
+
+        <header class="flex h-[60px] items-center gap-3 bg-slate-100 dark:bg-wa-header px-3 md:px-4">
+          <button id="backBtn" class="icon-btn md:hidden" title="Back">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <div id="chatAvatar" class="avatar h-10 w-10 text-sm"></div>
+          <div class="min-w-0 flex-1">
+            <h2 id="chatName" class="truncate font-medium leading-tight"></h2>
+            <p id="chatStatus" class="text-xs text-slate-500 dark:text-slate-400"></p>
+          </div>
+          <button id="clearBtn" class="icon-btn" title="Clear chat">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-1 12a2 2 0 01-2 2H8a2 2 0 01-2-2L5 7m5 4v6m4-6v6M9 7V4h6v3M4 7h16"/></svg>
+          </button>
+        </header>
+
+        <!-- Messages -->
+        <div id="messages" class="chat-bg flex-1 overflow-y-auto scroll-thin px-3 md:px-[8%] py-4"></div>
+
+        <!-- Emoji panel -->
+        <div id="emojiPanel" class="hidden grid-cols-8 gap-1 border-t border-slate-200 dark:border-wa-border bg-slate-100 dark:bg-wa-header p-3 max-h-40 overflow-y-auto scroll-thin"></div>
+
+        <!-- Composer -->
+        <footer class="flex items-end gap-2 bg-slate-100 dark:bg-wa-header px-3 py-2.5">
+          <button id="emojiBtn" class="icon-btn" title="Emoji">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M8.5 14.5s1.2 2 3.5 2 3.5-2 3.5-2M9 9.5h.01M15 9.5h.01"/></svg>
+          </button>
+          <textarea id="msgInput" rows="1" placeholder="Type a message"
+                    class="max-h-28 flex-1 resize-none rounded-lg bg-white dark:bg-wa-input px-4 py-2.5 text-sm outline-none placeholder:text-slate-500"></textarea>
+          <button id="sendBtn" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-wa-green text-white transition hover:brightness-110 active:scale-95" title="Send">
+            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+          </button>
+        </footer>
+      </section>
+    </main>
+  </div>
+
+  <!-- New chat modal -->
+  <div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
+    <div class="w-full max-w-sm rounded-xl bg-white dark:bg-wa-header p-5 shadow-xl">
+      <h3 class="mb-3 text-lg font-semibold">New chat</h3>
+      <input id="newName" type="text" maxlength="30" placeholder="Contact name"
+             class="mb-4 w-full rounded-lg border border-slate-300 dark:border-wa-border bg-transparent px-3 py-2 outline-none focus:border-wa-green" />
+      <div class="flex justify-end gap-2">
+        <button id="cancelNew" class="rounded-lg px-4 py-2 text-sm hover:bg-slate-200 dark:hover:bg-wa-hover">Cancel</button>
+        <button id="createNew" class="rounded-lg bg-wa-green px-4 py-2 text-sm font-medium text-white hover:brightness-110">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

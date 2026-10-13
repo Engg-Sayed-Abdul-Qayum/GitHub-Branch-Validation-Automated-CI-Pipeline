@@ -1,0 +1,117 @@
+// Jenkinsfile — CI pipeline for the ChatApp static web app (HTML + CSS + Tailwind + JS)
+// Requirements on the Jenkins agent: git, Node.js 18+ (npm/npx), python3, curl.
+// Tip: if Node is configured as a Jenkins tool, add:  tools { nodejs 'node20' }  under `pipeline {`
+
+pipeline {
+    agent any
+
+    options {
+        timestamps()
+        timeout(time: 15, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        disableConcurrentBuilds()
+    }
+
+    environment {
+        APP_NAME   = 'chatapp'
+        BUILD_TAG_ = "${env.BUILD_NUMBER}"
+        PORT       = '8089'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+                sh 'ls -la'
+            }
+        }
+
+        stage('Verify Files') {
+            steps {
+                sh '''
+                    set -e
+                    for f in index.html style.css tailwind.config.js script.js; do
+                        [ -f "$f" ] && echo "OK: $f" || { echo "MISSING: $f"; exit 1; }
+                    done
+                '''
+            }
+        }
+
+        stage('Lint & Syntax Check') {
+            parallel {
+                stage('JavaScript') {
+                    steps {
+                        sh '''
+                            node --version
+                            node --check script.js
+                            node --check tailwind.config.js
+                            echo "JavaScript syntax OK"
+                        '''
+                    }
+                }
+                stage('HTML') {
+                    steps {
+                        sh 'npx --yes htmlhint index.html'
+                    }
+                }
+                stage('CSS') {
+                    steps {
+                        // Fails if braces are unbalanced in style.css
+                        sh '''
+                            open=$(tr -cd '{' < style.css | wc -c)
+                            close=$(tr -cd '}' < style.css | wc -c)
+                            echo "CSS braces: { = $open, } = $close"
+                            [ "$open" -eq "$close" ]
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Smoke Test') {
+            steps {
+                sh '''
+                    set -e
+                    python3 -m http.server ${PORT} > server.log 2>&1 &
+                    SERVER_PID=$!
+                    sleep 2
+                    trap "kill $SERVER_PID" EXIT
+
+                    for path in index.html style.css script.js tailwind.config.js; do
+                        code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:${PORT}/$path)
+                        echo "GET /$path -> $code"
+                        [ "$code" = "200" ]
+                    done
+
+                    curl -s http://localhost:${PORT}/index.html | grep -q "ChatApp"
+                    echo "Smoke test passed"
+                '''
+            }
+        }
+
+        stage('Package') {
+            steps {
+                sh '''
+                    mkdir -p dist
+                    tar -czf dist/${APP_NAME}-${BUILD_TAG_}.tar.gz index.html style.css tailwind.config.js script.js
+                    ls -lh dist
+                '''
+                archiveArtifacts artifacts: 'dist/*.tar.gz', fingerprint: true
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Build #${env.BUILD_NUMBER} succeeded"
+        }
+        failure {
+            echo "Build #${env.BUILD_NUMBER} failed — check the stage logs above"
+        }
+        always {
+            sh 'pkill -f "http.server ${PORT}" || true'
+            cleanWs()
+        }
+    }
+}
