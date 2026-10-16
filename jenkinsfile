@@ -38,8 +38,8 @@ pipeline {
                     node --check tailwind.config.js
 
                     # HTML rules (junit report for Jenkins)
-                    npx --yes htmlhint --format junit index.html > report.xml || HTML_FAILED=1
-                    npx --yes htmlhint index.html
+                    htmlhint --format junit index.html > report.xml || HTML_FAILED=1
+                    htmlhint index.html
 
                     # CSS: balanced braces
                     open=$(tr -cd '{' < style.css | wc -c)
